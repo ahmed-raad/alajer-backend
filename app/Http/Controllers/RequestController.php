@@ -11,5 +11,6 @@ class RequestController extends Controller
     public function get_request()
     {
         return ModelsRequest::all();
+        //
     }
 }
