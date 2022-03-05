@@ -10,7 +10,6 @@ class RequestController extends Controller
 {
     public function get_request()
     {
-        $requests = ModelsRequest::latest();
-        return RequestResource::collection($requests);
+        return ModelsRequest::all();
     }
 }
