@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Offer;
 use App\Models\Request as ModelsRequest;
 use App\Models\User;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Image;
 
 class UserController extends Controller
 {
@@ -46,23 +48,79 @@ class UserController extends Controller
 
         $user->update($changes);
 
-        $response = $changes + ['token' => $request->token] + [$user->id];
+        $response = $changes +
+            ['token' => $request->bearerToken()] +
+            ['id' => $user->id] +
+            ['image' => 'http://localhost:8000/storage/users/' . $user->image,];
         return response($response, 200);
+    }
+
+    public function get_img()
+    {
+        $user = Auth::user();
+        return $user->image;
+    }
+
+    public function change_password(Request $request)
+    {
+        $user = User::find(Auth::user()->id);
+        $validator = Validator::make($request->all(), [
+            'old_password' => 'required|string|min:6',
+            'new_password' => 'required|string|min:6|confirmed',
+        ]);
+        if ($validator->fails()) {
+            return response(['errors' => $validator->errors()->all()], 422);
+        }
+
+        if (Hash::check($request->old_password, $user->password)) {
+            $new_password = Hash::make($request['new_password']);
+            $user->update(['password' => $new_password]);
+            return response(
+                'تم تغيير كلمة السر بنجاح',
+                200
+            );
+        }
     }
 
     public function change_img(Request $request)
     {
-        if ($img = $request->img) {
-            $imageName  = Str::after($img->store('users', 'public'), '/');
+        $user = User::find(Auth::user()->id);
+        if ($request->hasFile('img')) {
+
+            // First check if the user has an image and it exists in the storage
+            // If it exists, delete it
+            if ($user->image && Storage::disk('local')->exists('public/users/' . $user->image)) {
+                unlink(storage_path('app/public/users/' . $user->image));
+            }
+
+            $image       = $request->file('img');
+            $filename    = uniqid() . $image->getClientOriginalName();
+
+            $image_resize = Image::make($image->getRealPath());
+            $image_resize->resize(150, 150);
+
+            $image_resize->stream(); // <-- Key point (Very Very Important)
+
+            Storage::disk('local')->put('public/users' . '/' . $filename, $image_resize, 'public');
+            $user->update(['image' => $filename]);
         }
-        return $imageName;
+        $changes = [
+            'fullname' => $user->fullname,
+            'job' => $user->job,
+            'image' => 'http://localhost:8000/storage/users/' . $filename,
+            'email' => $user->email,
+            'phonenumber' => $user->phonenumber,
+            'city' => $user->city,
+            'token' => $request->bearerToken(),
+        ];
+        return response($changes, 200);
     }
 
     public function create_offer(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|max:40',
-            'description' => 'required|max:480|',
+            'description' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -84,7 +142,7 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|max:40',
-            'description' => 'required|max:480|',
+            'description' => 'required',
         ]);
 
         if ($validator->fails()) {

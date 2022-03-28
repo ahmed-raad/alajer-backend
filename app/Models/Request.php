@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,4 +14,28 @@ class Request extends Model
         'description',
         'user_id'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function getAuthorNameAttribute()
+    {
+        $user = User::find($this->user_id);
+        return $user->fullname;
+    }
+
+    public function getAuthorJobAttribute()
+    {
+        $user = User::find($this->user_id);
+        return $user->job;
+    }
+
+    public function getAuthorImgAttribute()
+    {
+        $user = User::find($this->user_id);
+        $image_name = $user->image;
+        return asset('http://localhost:8000/storage/users/' . $image_name);
+    }
 }

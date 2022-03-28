@@ -34,12 +34,13 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
 
 
 Route::middleware('auth:api')->group(function () {
-    // our routes to be protected will go in here
     Route::get('/get_user', [UserController::class, 'get_user'])->name('get_user.api');
     Route::put('/user_update', [UserController::class, 'update_user'])->name('update_user.api');
+    Route::put('/change_password', [UserController::class, 'change_password'])->name('change_password.api');
     Route::post('/create_offer', [UserController::class, 'create_offer'])->name('create_offer.api');
     Route::post('/create_request', [UserController::class, 'create_request'])->name('create_offer.api');
-    Route::post('/change_image', [UserController::class, 'change_img'])->name('change_img.api');
+    Route::get('/get_image', [UserController::class, 'get_img'])->name('get_img.api');
+    Route::put('/change_image', [UserController::class, 'change_img'])->name('change_img.api');
     Route::post('/logout', [ApiAuthController::class, 'logout'])->name('logout.api');
 });
 
